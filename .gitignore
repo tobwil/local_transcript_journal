@@ -1,0 +1,5 @@
+.env
+data/journal.json
+data/settings.json
+.DS_Store
+node_modules/

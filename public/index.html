@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#f5f1e8" />
+    <title>Meeting Journal</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="paper-grain"></div>
+    <header class="topbar">
+      <a class="brand" href="#" aria-label="Meeting Journal Startseite">
+        <span class="brand-mark">mj</span>
+        <span><strong>Meeting Journal</strong><small>Gedanken werden Aufgaben.</small></span>
+      </a>
+      <div class="top-actions">
+        <span id="syncStatus" class="sync-status"><i></i><span>Lokal</span></span>
+        <button id="mainScanButton" class="button button-ghost" type="button" title="OneDrive-Ordner jetzt prüfen">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg>
+          <span class="main-scan-label">Jetzt prüfen</span>
+        </button>
+        <button id="settingsButton" class="button button-ghost" type="button">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.8 2.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6v.2h-4V21a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1L4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9A1.7 1.7 0 0 0 3 14H2.8v-4H3a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9L4.2 7 7 4.2l.1.1a1.7 1.7 0 0 0 1.9.3A1.7 1.7 0 0 0 10 3V2.8h4V3a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1L19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.6 1h.2v4H21a1.7 1.7 0 0 0-1.6 1Z"/></svg>
+          Einstellungen
+        </button>
+        <button id="newEntryButton" class="button button-primary" type="button">+ Neuer Eintrag</button>
+      </div>
+    </header>
+
+    <main class="shell">
+      <section class="hero">
+        <div>
+          <p class="eyebrow" id="todayLabel"></p>
+          <h1>Guten Tag.<br><em>Was bleibt?</em></h1>
+          <p class="hero-copy">Alle Gespräche, Entscheidungen und nächsten Schritte an einem ruhigen Ort.</p>
+        </div>
+        <div class="stat-card">
+          <span class="stat-number" id="openTodoCount">0</span>
+          <span class="stat-label">offene Aufgaben</span>
+          <div class="stat-rule"></div>
+          <span class="stat-note" id="meetingCount">Noch keine Meetings</span>
+        </div>
+      </section>
+
+      <section class="workspace">
+        <aside class="sidebar">
+          <label class="search">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+            <input id="searchInput" type="search" placeholder="Journal durchsuchen …" />
+          </label>
+          <div class="filter-row" role="group" aria-label="Einträge filtern">
+            <button class="filter active" data-filter="all">Alle</button>
+            <button class="filter" data-filter="teams">Teams</button>
+            <button class="filter" data-filter="onedrive">OneDrive</button>
+            <button class="filter" data-filter="manual">Manuell</button>
+          </div>
+          <div class="list-heading"><span>Journal</span><span id="entryCount">0 Einträge</span></div>
+          <div id="entryList" class="entry-list"></div>
+        </aside>
+
+        <section id="detailPanel" class="detail-panel">
+          <div id="emptyState" class="empty-state">
+            <div class="empty-icon">✦</div>
+            <h2>Dein Journal beginnt hier.</h2>
+            <p>Füge ein Transkript ein oder verbinde Teams. Zusammenfassung und Aufgaben entstehen automatisch.</p>
+            <button class="button button-primary" data-open-modal>Transkript hinzufügen</button>
+          </div>
+          <article id="entryDetail" class="entry-detail hidden"></article>
+        </section>
+      </section>
+    </main>
+
+    <dialog id="entryDialog" class="entry-dialog">
+      <form id="entryForm" method="dialog">
+        <div class="dialog-head">
+          <div>
+            <p class="eyebrow">Neuer Journal-Eintrag</p>
+            <h2>Gespräch festhalten</h2>
+          </div>
+          <button class="icon-button" type="button" data-close-dialog="entryDialog" aria-label="Schließen">×</button>
+        </div>
+        <label>Titel<input name="title" required placeholder="z. B. Produkt-Roadmap Q3" /></label>
+        <div class="form-row">
+          <label>Datum<input name="occurredAt" type="datetime-local" /></label>
+          <label>Teilnehmende<input name="participants" placeholder="Namen, mit Komma getrennt" /></label>
+        </div>
+        <label>Notiz<textarea name="notes" rows="2" placeholder="Optionaler eigener Gedanke …"></textarea></label>
+        <div class="transcript-tabs">
+          <button type="button" class="tab active" data-mode="paste">Einfügen</button>
+          <button type="button" class="tab" data-mode="upload">Datei hochladen</button>
+        </div>
+        <div id="pastePane">
+          <label>Transkript<textarea name="transcript" rows="11" placeholder="Transkript hier einfügen …"></textarea></label>
+        </div>
+        <div id="uploadPane" class="upload-pane hidden">
+          <input id="fileInput" type="file" accept=".txt,.md,.vtt,.srt,.json,text/plain,text/vtt,application/json" />
+          <label class="dropzone" for="fileInput">
+            <span class="upload-symbol">↥</span>
+            <strong>Datei auswählen</strong>
+            <span>TXT, VTT, SRT, MD oder JSON · maximal 12 MB</span>
+          </label>
+          <p id="fileName" class="file-name"></p>
+        </div>
+        <p id="formError" class="form-error" role="alert"></p>
+        <div class="dialog-actions">
+          <button class="button button-ghost" type="button" data-close-dialog="entryDialog">Abbrechen</button>
+          <button id="saveEntryButton" class="button button-primary" type="submit">Analysieren & speichern</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="settingsDialog" class="entry-dialog settings-dialog">
+      <div class="settings-head">
+        <div><p class="eyebrow">Meeting Journal</p><h2>Einstellungen</h2></div>
+        <button class="icon-button" type="button" data-close-dialog="settingsDialog" aria-label="Schließen">×</button>
+      </div>
+      <div class="settings-layout">
+        <nav class="settings-nav" aria-label="Einstellungsbereiche">
+          <button class="settings-tab active" type="button" data-settings-tab="openai"><span>✦</span> KI & Zusammenfassung</button>
+          <button class="settings-tab" type="button" data-settings-tab="teams"><span>◫</span> Microsoft Teams</button>
+          <button class="settings-tab" type="button" data-settings-tab="onedrive"><span>☁</span> OneDrive-Ordner</button>
+        </nav>
+        <div class="settings-content">
+          <section class="settings-panel" data-settings-panel="openai">
+            <p class="eyebrow">KI & Zusammenfassung</p>
+            <h3>OpenAI verbinden</h3>
+            <p class="settings-copy">Mit einem API-Key werden Zusammenfassungen, Entscheidungen und Aufgaben präziser. Ohne Key bleibt die lokale Analyse aktiv.</p>
+            <form id="openAISettingsForm">
+              <label>OpenAI API-Key
+                <div class="secret-input"><input name="apiKey" type="password" autocomplete="off" placeholder="sk-…" /><button id="toggleApiKeyButton" type="button" aria-label="API-Key anzeigen">◉</button></div>
+              </label>
+              <p id="openAIKeyHint" class="integration-status"></p>
+              <label>Modell
+                <select name="model">
+                  <option value="gpt-5.6-luna">GPT-5.6 Luna · schnell & günstig</option>
+                  <option value="gpt-5.6-terra">GPT-5.6 Terra · ausgewogen</option>
+                  <option value="gpt-5.6-sol">GPT-5.6 Sol · höchste Qualität</option>
+                </select>
+              </label>
+              <label class="switch-row remove-key-row hidden" id="removeApiKeyRow"><input name="removeKey" type="checkbox" /><span><strong>Gespeicherten Key entfernen</strong><small>Danach wird wieder die lokale Analyse verwendet.</small></span></label>
+              <p id="openAIError" class="form-error" role="alert"></p>
+              <div class="dialog-actions split-actions"><button id="testOpenAIButton" class="button button-ghost" type="button">Verbindung testen</button><span class="action-spacer"></span><button id="saveOpenAIButton" class="button button-primary" type="submit">KI-Einstellungen speichern</button></div>
+            </form>
+          </section>
+
+          <section class="settings-panel hidden" data-settings-panel="teams">
+            <p class="eyebrow">Microsoft Teams</p>
+            <h3>Meetings automatisch importieren</h3>
+            <div id="teamsConnectedCard" class="connection-card hidden"><span class="connection-dot"></span><div><strong id="teamsConnectedName">Microsoft verbunden</strong><small>Kalender und verfügbare Transkripte können synchronisiert werden.</small></div></div>
+            <form id="loginForm">
+              <p class="settings-copy">Kein Client-Secret: Client-ID und Tenant werden nur lokal in diesem Browser gespeichert.</p>
+              <label>Microsoft Application (Client) ID<input name="clientId" required autocomplete="off" placeholder="00000000-0000-0000-0000-000000000000" /></label>
+              <label>Tenant<input name="tenantId" required autocomplete="off" value="organizations" placeholder="organizations oder deine Tenant-ID" /></label>
+              <label>Redirect-URI<input id="redirectUriField" readonly /></label>
+              <div class="permission-note"><strong>Einmalig in Microsoft Entra nötig</strong><span>SPA-Redirect-URI und die delegierten Rechte <code>User.Read</code>, <code>Calendars.Read</code>, <code>OnlineMeetings.Read</code> und <code>OnlineMeetingTranscript.Read.All</code>.</span></div>
+              <p id="loginError" class="form-error" role="alert"></p>
+              <div class="dialog-actions split-actions"><button id="settingsTeamsSignOutButton" class="button button-ghost danger hidden" type="button">Konto trennen</button><button id="settingsTeamsSyncButton" class="button button-ghost hidden" type="button">Jetzt abgleichen</button><span class="action-spacer"></span><button id="microsoftLoginSubmitButton" class="button button-primary" type="submit">Weiter zu Microsoft</button></div>
+            </form>
+          </section>
+
+          <section class="settings-panel hidden" data-settings-panel="onedrive">
+            <p class="eyebrow">Lokale Automatik</p>
+            <h3>OneDrive-Ordner überwachen</h3>
+            <p class="settings-copy">Wähle einen Ordner, den die OneDrive-App bereits auf diesen Computer synchronisiert. Neue oder geänderte Transkripte erscheinen automatisch.</p>
+            <form id="oneDriveForm">
+              <input name="folderPath" type="hidden" />
+              <div class="folder-picker">
+                <div class="folder-selection"><span>Ausgewählter Ordner</span><strong id="selectedFolderPath">Noch kein Ordner ausgewählt</strong></div>
+                <button id="chooseFolderButton" class="button button-ghost" type="button">Ordner auswählen …</button>
+              </div>
+              <label class="switch-row"><input name="enabled" type="checkbox" checked /><span><strong>Überwachung aktiv</strong><small>Prüft Änderungen sofort und zusätzlich einmal pro Minute.</small></span></label>
+              <div class="permission-note"><strong>Unterstützte Dateien</strong><span>VTT, DOCX, TXT, SRT, Markdown und JSON. Dubletten werden automatisch erkannt.</span></div>
+              <p id="oneDriveStatusText" class="integration-status"></p>
+              <p id="oneDriveError" class="form-error" role="alert"></p>
+              <div class="dialog-actions split-actions"><button id="scanFolderButton" class="button button-ghost" type="button">Jetzt prüfen</button><span class="action-spacer"></span><button id="saveOneDriveButton" class="button button-primary" type="submit">Speichern & überwachen</button></div>
+            </form>
+          </section>
+        </div>
+      </div>
+    </dialog>
+
+    <div id="toast" class="toast" role="status"></div>
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>
