@@ -1,8 +1,8 @@
 # Bereinigter Gesprächsverlauf
 
-Stand: 22. Juli 2026
+Stand: 24. Juli 2026
 
-Dieses Dokument hält die Produktentscheidungen und Arbeitsaufträge aus der Entstehung des Meeting Journals fest. Automatisch gelieferte Browser- und Systeminformationen wurden weggelassen. API-Key-Werte, Zugangsdaten, Tokens und andere Geheimnisse sind ausdrücklich nicht enthalten.
+Dieses Dokument hält die Produktentscheidungen und Arbeitsaufträge aus der Entstehung des Workshop Journals fest. Automatisch gelieferte Browser- und Systeminformationen wurden weggelassen. API-Key-Werte, Zugangsdaten, Tokens und andere Geheimnisse sind ausdrücklich nicht enthalten.
 
 ## 1. Grundidee
 
@@ -48,3 +48,36 @@ Dieses Dokument hält die Produktentscheidungen und Arbeitsaufträge aus der Ent
 
 **Ergebnis:** Dieser bereinigte Verlauf wurde ergänzt. Laufzeitdaten, Journal-Inhalte, Microsoft-Tokens, lokale Einstellungen und API-Key-Werte bleiben durch `.gitignore` vom Repository ausgeschlossen.
 
+## 8. Hostseitige Workshop-Aufnahme
+
+**Nutzer:** „Ich möchte für meine Workshops gerne immer Transkripte für das nachgelagerte Recap/Summary erstellen. Teams ist leider deaktiviert, daher müssen wir es hostseitig machen.“
+
+**Nutzer:** „Wichtig wäre Audioaufnahme, Transkript und ein Button, um Screenshots zu machen, die dann gleich mit abgelegt werden. Screenshots am besten immer fensterbezogen, sodass nicht der komplette Bildschirm aufgenommen wird.“
+
+**Ergebnis:** Das bestehende Repository wurde als Basis für eine lokale macOS-Desktop-App verwendet. Die Lösung zeichnet Mikrofon und Systemaudio hostseitig auf, lässt ein einzelnes Workshop-Fenster auswählen und erzeugt Screenshots ausschließlich aus diesem Fenster.
+
+## 9. Produktionsanspruch statt MVP
+
+**Nutzer:** „Go for it! Aber es soll funktionieren. Nicht nur MVP.“
+
+**Ergebnis:** Die Aufnahmestrecke wurde mit fortlaufender Speicherung, getrennten und gemischten Audiospuren, Berechtigungs-Preflight, Einwilligungsbestätigung, sicherer Electron-Bridge und Wiederherstellung nach Unterbrechungen umgesetzt. Ein globaler Hotkey `⌘⇧S` ergänzt den Screenshot-Button.
+
+Für die lokale Transkription wurde Whisper `large-v3-turbo-q5_0` mit Metal-Unterstützung und gebündeltem FFmpeg integriert. Pro Workshop entstehen Session-Metadaten, Audio, Screenshots, zeitgestempelte Transkripte und ein Markdown-Recap. Das Modell wird einmalig geladen und per SHA-256 geprüft.
+
+## 10. Funktions- und Paketprüfung
+
+**Ergebnis:** Unit-Tests prüfen Journal-Import, lokale Analyse, Audio-/Screenshot-Speicherung, Recovery und Pfadsicherheit. Electron-Smoke-Tests prüfen die echte Desktop-Bridge, Fensterquellen, native Whisper-/FFmpeg-Komponenten sowie Entwicklungs- und Paket-Build.
+
+Ein vollständiger Integrationstest erzeugte eine deutsche Testaufnahme, transkribierte sie lokal über Whisper und Metal und prüfte Zeitstempel, Screenshot-Zuordnung, Recap und Journal-Eintrag. Zusätzlich wurden eine Apple-Silicon-App, ein DMG und ein ZIP erzeugt. Für die Weitergabe an andere Macs fehlen noch Apple-Developer-ID-Signierung und Notarisierung.
+
+## 11. Veröffentlichung des Desktop-Upgrades
+
+**Nutzer:** „Ich find’s sehr geil geworden! Bitte das Update nach Git pushen. Das ist ein massives Upgrade.“
+
+**Ergebnis:** Das Upgrade wurde auf `codex/desktop-workshop-recorder` veröffentlicht und als Draft-PR gegen `main` angelegt. Commit- und PR-Beschreibung dokumentieren Funktionen, Datenschutzwirkung, Tests und den noch offenen Signierungsstatus.
+
+## 12. Browser-Kompatibilität und Dokumentationsabgleich
+
+**Nutzer:** „Ist die Version für den Browser auch noch ganz normal startbar ohne macOS? Ich denke, die README passt nicht mehr ganz, oder? Und auch die Gesprächshistorie ist nicht vollständig.“
+
+**Ergebnis:** Die Browser-Version wurde erneut ohne Electron-Bridge unter `http://127.0.0.1:4173` geprüft. Journal, Suche, Filter, Einstellungen und Transkript-Dialog funktionieren plattformübergreifend. Aufnahme, Systemaudio, Fensterscreenshots, Whisper und Recovery bleiben bewusst Funktionen der macOS-Desktop-App. README, Oberfläche und dieser Gesprächsverlauf wurden entsprechend aktualisiert.

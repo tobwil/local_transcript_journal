@@ -386,7 +386,7 @@ export async function startJournalServer({ port = Number(process.env.PORT || 417
   const actualPort = typeof address === 'object' && address ? address.port : port;
   const url = `http://127.0.0.1:${actualPort}`;
   if (!quiet) {
-    console.log(`Meeting Journal läuft auf ${url}`);
+    console.log(`Workshop Journal läuft auf ${url}`);
     console.log('Teams-Sync: Anmeldung erfolgt in der App');
   }
   return { server, port: actualPort, url };

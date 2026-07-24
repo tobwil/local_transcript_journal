@@ -417,6 +417,10 @@ export function initWorkshopRecorder() {
   if (!desktop) {
     $('#recordWorkshopButton')?.classList.add('hidden');
     $$('[data-record-workshop]').forEach((button) => button.classList.add('hidden'));
+    const emptyCopy = $('#emptyState p');
+    if (emptyCopy) {
+      emptyCopy.textContent = 'Füge ein vorhandenes Transkript hinzu. Zusammenfassung und Aufgaben entstehen automatisch.';
+    }
     return;
   }
   $('#recordWorkshopButton').addEventListener('click', openWorkshopDialog);
