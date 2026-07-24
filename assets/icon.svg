@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="paper" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#fffdf8"/>
+      <stop offset="1" stop-color="#ebe5d8"/>
+    </linearGradient>
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="32" stdDeviation="34" flood-color="#132c25" flood-opacity=".32"/>
+    </filter>
+  </defs>
+  <rect x="52" y="52" width="920" height="920" rx="214" fill="#234f42"/>
+  <path d="M152 744C300 612 416 794 540 686c120-105 220-56 332 42v148H152Z" fill="#183f34" opacity=".7"/>
+  <rect x="226" y="168" width="572" height="688" rx="72" fill="url(#paper)" filter="url(#shadow)"/>
+  <path d="M326 350h372M326 470h372M326 590h226" fill="none" stroke="#234f42" stroke-width="48" stroke-linecap="round" opacity=".2"/>
+  <circle cx="674" cy="686" r="86" fill="#bd684a"/>
+  <circle cx="674" cy="686" r="36" fill="#fffdf8"/>
+  <path d="M226 244c0-42 34-76 76-76h420c42 0 76 34 76 76v42H226Z" fill="#f5f1e8"/>
+  <text x="294" y="272" fill="#234f42" font-family="Georgia, serif" font-size="116" font-style="italic" font-weight="700">wj</text>
+</svg>

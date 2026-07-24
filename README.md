@@ -1,30 +1,113 @@
-# Meeting Journal
+# Workshop Journal
 
-Eine lokal laufende Journal-Anwendung für Meeting-Transkripte. Sie speichert Transkripte, erzeugt Zusammenfassungen und sammelt Aufgaben an einem Ort.
+Eine lokale Anwendung für Transkripte, Workshop-Aufnahmen, Recaps, Entscheidungen und Aufgaben. Sie kann plattformübergreifend als Browser-Anwendung oder mit zusätzlichen Aufnahmefunktionen als macOS-Desktop-App betrieben werden.
 
 Der bereinigte Entstehungsverlauf ist unter [docs/CONVERSATION_HISTORY.md](docs/CONVERSATION_HISTORY.md) dokumentiert. Zugangsdaten und API-Key-Werte sind darin nicht enthalten.
 
-## Funktionen
+## Betriebsarten
 
-- Manuelles Einfügen von Transkripten
-- Datei-Import für TXT, VTT, SRT, Markdown und JSON
-- Automatischer Abruf von Teams-Transkripten über Microsoft Graph
-- Lokale Zusammenfassung und Aufgaben-Erkennung ohne Cloud-Zwang
-- Optionale, präzisere Zusammenfassungen über die OpenAI Responses API
-- Suche, Quellenfilter, Entscheidungen und abhakbare Aufgaben
-- Ausschließlich lokale Journal-Daten unter `data/journal.json`
+| Funktion | Browser unter Windows, Linux und macOS | macOS-Desktop-App |
+| --- | --- | --- |
+| Journal, Suche, Entscheidungen und Todos | Ja | Ja |
+| Transkript einfügen oder Datei importieren | Ja | Ja |
+| OneDrive-Ordner überwachen | Ja | Ja |
+| Teams-Transkripte über Microsoft Graph importieren | Ja | Browser-Modus empfohlen |
+| Lokale oder optionale OpenAI-Zusammenfassung | Ja | Ja |
+| Mikrofon und Systemaudio aufnehmen | Nein | Ja |
+| Einzelnes Fenster auswählen und Screenshots aufnehmen | Nein | Ja |
+| Lokale Whisper-Transkription und Recovery | Nein | Ja |
 
-## Start
+Die Browser-Anwendung bleibt die plattformübergreifende Journal- und Importvariante. Die Desktop-App ergänzt die Betriebssystemintegration, die ein normaler Browser nicht zuverlässig und sicher bereitstellen kann.
 
-Voraussetzung: Node.js 20 oder neuer.
+## Browser-Version starten
+
+Voraussetzung ist Node.js 20 oder neuer. Danach:
 
 ```bash
+npm install
 npm start
 ```
 
-Danach `http://127.0.0.1:4173` öffnen. Integrationen werden zentral über **Einstellungen** in der Oberfläche konfiguriert. Eine `.env`-Datei ist nur noch für optionale technische Werte wie einen abweichenden Port nötig.
+Das Journal ist anschließend ausschließlich lokal unter `http://127.0.0.1:4173` erreichbar. Es wird nicht im Netzwerk veröffentlicht. Der Browser-Modus läuft unter Windows, Linux und macOS und benötigt weder Electron noch macOS.
 
-## Teams automatisch verbinden
+Unter Linux setzt der native OneDrive-Ordnerdialog `zenity` voraus. Alternativ funktionieren das manuelle Einfügen und der Datei-Upload ohne diese Zusatzsoftware.
+
+## Desktop-App starten
+
+Zusätzliche Voraussetzungen:
+
+- macOS 14.2 oder neuer für zuverlässige Systemaudioaufnahme
+- der bereitgestellte Build ist für Apple Silicon
+- einmalig etwa 574 MB freier Speicher für das Whisper-Modell
+
+```bash
+npm install
+npm run desktop
+```
+
+Beim ersten Öffnen einer Workshop-Aufnahme führt die App einen Preflight für Mikrofon, Fensteraufnahme, FFmpeg und Whisper durch. Das Transkriptionsmodell wird über **Modell laden** einmalig heruntergeladen und per SHA-256 geprüft.
+
+macOS fragt beim ersten Einsatz nach:
+
+- Mikrofon
+- Bildschirm- und Systemaudioaufnahme
+
+Nach einer nachträglichen Änderung unter **Systemeinstellungen → Datenschutz & Sicherheit** muss die App neu gestartet werden.
+
+## Workshop aufnehmen
+
+1. **Workshop aufnehmen** öffnen.
+2. Titel, Sprache und optional Teilnehmende eintragen.
+3. Mikrofon, Systemaudio und Fensteraufnahme passend zum Workshop auswählen.
+4. Das konkrete PowerPoint-, Browser-, Whiteboard- oder Meeting-Fenster wählen.
+5. Bestätigen, dass die Teilnehmenden informiert wurden.
+6. Aufnahme starten.
+7. Screenshots über den Button oder `⌘⇧S` aufnehmen.
+8. **Beenden & transkribieren** wählen.
+
+Audio wird während der Aufnahme alle fünf Sekunden an den Desktop-Prozess übergeben und sofort auf die Platte geschrieben. Ein App-Absturz verliert daher nicht die komplette Aufnahme. Beim nächsten Start bietet die Anwendung eine Wiederherstellung an.
+
+## Lokale Daten
+
+Die installierte Desktop-App verwendet:
+
+```text
+~/Library/Application Support/Workshop Journal/data/
+├── journal.json
+├── settings.json
+├── models/
+└── workshops/
+    └── <session-id>/
+        ├── session.json
+        ├── audio/
+        ├── screenshots/
+        ├── transcript.json
+        ├── transcript.md
+        └── recap.md
+```
+
+Beim Löschen einer Workshop-Aufnahme im Journal werden auch deren Audio, Screenshots und abgeleitete Dateien entfernt.
+
+Die Browser-Version speichert standardmäßig relativ zum Projekt:
+
+```text
+./data/
+├── journal.json
+└── settings.json
+```
+
+Über `MEETING_JOURNAL_DATA_DIR` kann ein anderer Datenordner vorgegeben werden.
+
+## Desktop-App bauen
+
+```bash
+npm run pack   # ungepackte App zum lokalen Prüfen
+npm run dist   # DMG und ZIP
+```
+
+Für eine Weitergabe außerhalb des eigenen Macs sollte die App mit einem Apple Developer ID Application-Zertifikat signiert und notarisiert werden. Mikrofon- und Audiozweckbeschreibungen sind bereits in der Build-Konfiguration enthalten.
+
+## Teams automatisch verbinden – Browser-Modus
 
 Der automatische Import verwendet eine normale Microsoft-Anmeldung direkt in der App. Es gibt kein Client-Secret und keine Microsoft-Zugangsdaten in `.env`. Eine einmalige App-Registrierung bleibt erforderlich, weil Microsoft Graph keine nicht registrierten Anwendungen akzeptiert.
 
@@ -39,7 +122,7 @@ Der automatische Import verwendet eine normale Microsoft-Anmeldung direkt in der
 5. Im Teams Admin Center unter **Meetings → Meeting settings → Transcript API access** den Microsoft-Graph-Zugriff aktivieren. Optional die Sprecherzuordnung aktivieren.
 6. Im Journal **Einstellungen → Microsoft Teams** öffnen und einmalig die Application (Client) ID eintragen. Als Tenant funktioniert `organizations` oder die konkrete Directory/Tenant-ID.
 
-Die App verwendet den Authorization-Code-Flow mit PKCE. Es muss und darf kein Client-Secret in die Browser-App eingetragen werden. Nach der Anmeldung werden Kalendertermine der letzten 90 Tage geprüft, Teams-Meetings aufgelöst und verfügbare Transkripte importiert. Beim Öffnen sowie alle 15 Minuten wird automatisch synchronisiert, solange die App geöffnet ist.
+Die Browser-App verwendet den Authorization-Code-Flow mit PKCE. Es muss und darf kein Client-Secret eingetragen werden. Nach der Anmeldung werden Kalendertermine der letzten 90 Tage geprüft, Teams-Meetings aufgelöst und verfügbare Transkripte importiert. Beim Öffnen sowie alle 15 Minuten wird automatisch synchronisiert, solange die App geöffnet ist.
 
 ## Lokalen OneDrive-Ordner überwachen
 
@@ -59,7 +142,9 @@ Ohne API-Key arbeitet die App mit einer lokalen Heuristik. Unter **Einstellungen
 
 ## Datenschutz
 
-- Journal und Transkripte werden lokal in `data/journal.json` gespeichert.
+- Audio, Screenshots, Journal und Transkripte werden lokal im Application-Support-Ordner gespeichert.
+- Die Fensteraufnahme erfasst nur das explizit ausgewählte Fenster; sie wird nicht als Video gespeichert.
+- Die lokale Transkription verwendet Whisper über Metal/CPU und sendet kein Audio an einen Cloud-Dienst.
 - Microsoft-Tokens und Client-ID liegen nur im lokalen Browser-Speicher. Ein Client-Secret wird nicht verwendet.
 - Der optionale OpenAI-Key liegt ausschließlich in der lokalen, von Git ignorierten Datei `data/settings.json` und wird nie vollständig an den Browser zurückgegeben.
 - Bei aktivierter OpenAI-Zusammenfassung wird der Transkripttext zur Analyse an die OpenAI API übertragen.
@@ -70,4 +155,14 @@ Ohne API-Key arbeitet die App mit einer lokalen Heuristik. Unter **Einstellungen
 
 ```bash
 npm test
+npm run test:electron
+npm run test:packaged
+```
+
+`npm test` prüft die plattformunabhängigen Journal-, Import- und Storage-Funktionen. Die Electron-Tests benötigen macOS und prüfen die Desktop-Bridge, Fensterquellen sowie den paketierten Build.
+
+Ein vollständiger macOS-Integrationstest erzeugt per System-Sprachausgabe eine deutsche Testaufnahme, transkribiert sie lokal und prüft Zeitstempel, Screenshot-Zuordnung und Journal-Eintrag:
+
+```bash
+node scripts/transcription-integration.mjs
 ```

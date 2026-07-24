@@ -1,3 +1,5 @@
+import { initWorkshopRecorder } from './recorder.js';
+
 const state = {
   entries: [],
   selectedId: null,
@@ -195,7 +197,8 @@ function toast(message, error = false) {
 function sourceLabel(source) {
   return source === 'teams' ? 'Microsoft Teams'
     : source === 'onedrive' ? 'OneDrive-Ordner'
-      : source === 'upload' ? 'Datei-Import' : 'Manuell';
+      : source === 'workshop' ? 'Workshop-Aufnahme'
+        : source === 'upload' ? 'Datei-Import' : 'Manuell';
 }
 
 function filteredEntries() {
@@ -283,9 +286,25 @@ function renderDetail(entry) {
   const decisions = (entry.decisions || []).map((item) => `<li>${escapeHtml(item)}</li>`).join('');
   const participants = (entry.participants || []).map((name) => `<span class="participant">${escapeHtml(name)}</span>`).join('');
   const topics = (entry.topics || []).map((topic) => `<span class="topic">${escapeHtml(topic)}</span>`).join('');
+  const duration = entry.recording?.durationMs
+    ? new Date(entry.recording.durationMs).toISOString().slice(11, 19)
+    : '';
+  const workshopMeta = entry.source === 'workshop' ? `<div class="workshop-meta">
+    ${duration ? `<span>◷ ${duration} Aufnahme</span>` : ''}
+    ${entry.recording?.captureMode?.microphone ? '<span>⌁ Mikrofon</span>' : ''}
+    ${entry.recording?.captureMode?.system ? '<span>◉ Systemaudio</span>' : ''}
+    ${entry.recording?.sourceName ? `<span>▣ ${escapeHtml(entry.recording.sourceName)}</span>` : ''}
+  </div>` : '';
+  const screenshots = (entry.screenshots || []).map((item) => {
+    const stamp = new Date(item.offsetMs || 0).toISOString().slice(11, 19);
+    return `<a class="screenshot-card" href="${escapeHtml(item.url)}" target="_blank" rel="noreferrer">
+      <img src="${escapeHtml(item.url)}" alt="Screenshot aus ${escapeHtml(item.windowName)} bei ${stamp}" loading="lazy" />
+      <span><b>${escapeHtml(item.windowName)}</b><time>${stamp}</time></span>
+    </a>`;
+  }).join('');
   $('#entryDetail').innerHTML = `
     <div class="detail-top">
-      <div><div class="detail-date">${formatDate(entry.occurredAt, 'full')} · ${sourceLabel(entry.source)}</div><h2>${escapeHtml(entry.title)}</h2><div class="participants">${participants || '<span>Keine Teilnehmenden erkannt</span>'}</div></div>
+      <div><div class="detail-date">${formatDate(entry.occurredAt, 'full')} · ${sourceLabel(entry.source)}</div><h2>${escapeHtml(entry.title)}</h2><div class="participants">${participants || '<span>Keine Teilnehmenden erkannt</span>'}</div>${workshopMeta}</div>
     </div>
     <div class="detail-grid">
       <div>
@@ -298,6 +317,7 @@ function renderDetail(entry) {
       </div>
       <aside class="todo-box"><div class="section-label">Nächste Schritte</div>${todos || '<p class="none-note">Keine konkreten Aufgaben erkannt.</p>'}</aside>
     </div>
+    ${screenshots ? `<section class="screenshot-section"><div class="section-label">Workshop-Screenshots · ${entry.screenshots.length}</div><div class="screenshot-gallery">${screenshots}</div></section>` : ''}
     <details class="transcript-block"><summary>Original-Transkript anzeigen</summary><div class="transcript-content">${escapeHtml(entry.transcript)}</div></details>
     <div class="detail-actions">
       <button class="button button-ghost" data-resummarize>Neu zusammenfassen</button>
@@ -314,7 +334,7 @@ function renderDetail(entry) {
     } catch (error) { input.checked = !input.checked; toast(error.message, true); }
   }));
   $('[data-resummarize]').addEventListener('click', () => resummarize(entry.id));
-  $('[data-delete]').addEventListener('click', () => deleteEntry(entry.id, entry.title));
+  $('[data-delete]').addEventListener('click', () => deleteEntry(entry));
 }
 
 async function resummarize(id) {
@@ -330,11 +350,14 @@ async function resummarize(id) {
   } catch (error) { toast(error.message, true); button.disabled = false; button.textContent = 'Neu zusammenfassen'; }
 }
 
-async function deleteEntry(id, title) {
-  if (!confirm(`„${title}“ wirklich aus dem lokalen Journal löschen?`)) return;
+async function deleteEntry(entry) {
+  const detail = entry.source === 'workshop'
+    ? ' Dabei werden auch die lokale Audioaufnahme, das Transkript und alle Screenshots gelöscht.'
+    : '';
+  if (!confirm(`„${entry.title}“ wirklich aus dem lokalen Journal löschen?${detail}`)) return;
   try {
-    await api(`/api/entries/${id}`, { method: 'DELETE' });
-    state.entries = state.entries.filter((entry) => entry.id !== id);
+    await api(`/api/entries/${entry.id}`, { method: 'DELETE' });
+    state.entries = state.entries.filter((item) => item.id !== entry.id);
     state.selectedId = null;
     $('#entryDetail').classList.add('hidden');
     $('#emptyState').classList.remove('hidden');
@@ -690,5 +713,13 @@ async function bootstrap() {
 setInterval(() => {
   if (isMicrosoftConnected() && document.visibilityState === 'visible') performTeamsSync({ silent: true });
 }, 15 * 60000);
+
+window.addEventListener('workshop-complete', async (event) => {
+  await load();
+  if (event.detail?.entry?.id) await selectEntry(event.detail.entry.id);
+  toast('Workshop wurde transkribiert und als Recap gespeichert.');
+});
+window.addEventListener('workshop-error', (event) => toast(event.detail || 'Workshop-Aufnahme fehlgeschlagen.', true));
+initWorkshopRecorder();
 
 bootstrap().catch((error) => toast(error.message, true));
