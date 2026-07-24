@@ -1,5 +1,6 @@
 .env
-data/journal.json
-data/settings.json
+data/
+dist/
+release/
 .DS_Store
 node_modules/

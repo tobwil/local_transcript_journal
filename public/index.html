@@ -4,18 +4,23 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#f5f1e8" />
-    <title>Meeting Journal</title>
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; media-src 'self' blob:; connect-src 'self' https://login.microsoftonline.com https://graph.microsoft.com; object-src 'none'; base-uri 'self'; form-action 'self' https://login.microsoftonline.com" />
+    <title>Workshop Journal</title>
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
     <div class="paper-grain"></div>
     <header class="topbar">
-      <a class="brand" href="#" aria-label="Meeting Journal Startseite">
-        <span class="brand-mark">mj</span>
-        <span><strong>Meeting Journal</strong><small>Gedanken werden Aufgaben.</small></span>
+      <a class="brand" href="#" aria-label="Workshop Journal Startseite">
+        <span class="brand-mark">wj</span>
+        <span><strong>Workshop Journal</strong><small>Aufnehmen. Verstehen. Handeln.</small></span>
       </a>
       <div class="top-actions">
         <span id="syncStatus" class="sync-status"><i></i><span>Lokal</span></span>
+        <button id="recordWorkshopButton" class="button button-record" type="button">
+          <span class="record-dot"></span>
+          Workshop aufnehmen
+        </button>
         <button id="mainScanButton" class="button button-ghost" type="button" title="OneDrive-Ordner jetzt prüfen">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg>
           <span class="main-scan-label">Jetzt prüfen</span>
@@ -53,6 +58,7 @@
             <button class="filter active" data-filter="all">Alle</button>
             <button class="filter" data-filter="teams">Teams</button>
             <button class="filter" data-filter="onedrive">OneDrive</button>
+            <button class="filter" data-filter="workshop">Aufnahmen</button>
             <button class="filter" data-filter="manual">Manuell</button>
           </div>
           <div class="list-heading"><span>Journal</span><span id="entryCount">0 Einträge</span></div>
@@ -63,8 +69,11 @@
           <div id="emptyState" class="empty-state">
             <div class="empty-icon">✦</div>
             <h2>Dein Journal beginnt hier.</h2>
-            <p>Füge ein Transkript ein oder verbinde Teams. Zusammenfassung und Aufgaben entstehen automatisch.</p>
-            <button class="button button-primary" data-open-modal>Transkript hinzufügen</button>
+            <p>Nimm einen Workshop direkt auf oder füge ein vorhandenes Transkript hinzu. Zusammenfassung und Aufgaben entstehen automatisch.</p>
+            <div class="empty-actions">
+              <button class="button button-record" data-record-workshop><span class="record-dot"></span>Workshop aufnehmen</button>
+              <button class="button button-primary" data-open-modal>Transkript hinzufügen</button>
+            </div>
           </div>
           <article id="entryDetail" class="entry-detail hidden"></article>
         </section>
@@ -112,7 +121,7 @@
 
     <dialog id="settingsDialog" class="entry-dialog settings-dialog">
       <div class="settings-head">
-        <div><p class="eyebrow">Meeting Journal</p><h2>Einstellungen</h2></div>
+        <div><p class="eyebrow">Workshop Journal</p><h2>Einstellungen</h2></div>
         <button class="icon-button" type="button" data-close-dialog="settingsDialog" aria-label="Schließen">×</button>
       </div>
       <div class="settings-layout">
@@ -179,6 +188,103 @@
         </div>
       </div>
     </dialog>
+
+    <dialog id="workshopDialog" class="entry-dialog workshop-dialog">
+      <form id="workshopForm">
+        <div class="dialog-head">
+          <div>
+            <p class="eyebrow">Lokale Aufzeichnung</p>
+            <h2>Workshop aufnehmen</h2>
+          </div>
+          <button class="icon-button" type="button" data-close-dialog="workshopDialog" aria-label="Schließen">×</button>
+        </div>
+        <p class="workshop-intro">Audio, Transkript und Screenshots bleiben auf diesem Mac. Vor dem Start werden alle benötigten Komponenten geprüft.</p>
+        <div id="workshopPreflight" class="preflight-grid" aria-live="polite"></div>
+        <div id="modelSetupBox" class="model-setup hidden">
+          <div><strong>Lokale Transkription einrichten</strong><span>Einmaliger Download des deutschen Whisper-Modells · ca. 574 MB</span></div>
+          <button id="downloadModelButton" class="button button-ghost" type="button">Modell laden</button>
+        </div>
+        <label>Titel<input name="title" required placeholder="z. B. Strategie-Workshop Q4" /></label>
+        <div class="form-row">
+          <label>Sprache
+            <select name="language">
+              <option value="de">Deutsch</option>
+              <option value="en">Englisch</option>
+              <option value="auto">Automatisch erkennen</option>
+            </select>
+          </label>
+          <label>Teilnehmende<input name="participants" placeholder="Namen, mit Komma getrennt" /></label>
+        </div>
+        <label>Notiz<textarea name="notes" rows="2" placeholder="Ziel oder Kontext des Workshops …"></textarea></label>
+        <div class="capture-options">
+          <label class="switch-row"><input name="microphone" type="checkbox" checked /><span><strong>Mikrofon aufnehmen</strong><small>Deine Stimme und Beiträge im Raum</small></span></label>
+          <label class="switch-row"><input name="system" type="checkbox" checked /><span><strong>Systemaudio aufnehmen</strong><small>Remote-Teilnehmende und abgespielte Medien</small></span></label>
+          <label class="switch-row"><input name="window" type="checkbox" checked /><span><strong>Workshop-Fenster erfassen</strong><small>Nur für gezielte Screenshots, keine Videoaufzeichnung</small></span></label>
+        </div>
+        <div id="windowSelection" class="window-selection">
+          <div>
+            <span>Screenshot-Quelle</span>
+            <strong id="selectedWindowName">Noch kein Fenster ausgewählt</strong>
+          </div>
+          <button id="chooseWindowButton" class="button button-ghost" type="button">Fenster auswählen …</button>
+        </div>
+        <label class="switch-row consent-row"><input name="consent" type="checkbox" required /><span><strong>Teilnehmende wurden über die Aufzeichnung informiert</strong><small>Bitte vor Beginn Zustimmung und interne Datenschutzvorgaben klären.</small></span></label>
+        <p id="workshopError" class="form-error" role="alert"></p>
+        <div class="dialog-actions">
+          <button class="button button-ghost" type="button" data-close-dialog="workshopDialog">Abbrechen</button>
+          <button id="startWorkshopButton" class="button button-record" type="submit"><span class="record-dot"></span>Aufnahme starten</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="sourceDialog" class="entry-dialog source-dialog">
+      <div class="source-dialog-content">
+        <div class="dialog-head">
+          <div><p class="eyebrow">Fensterbezogene Screenshots</p><h2>Workshop-Fenster wählen</h2></div>
+          <button class="icon-button" type="button" data-close-dialog="sourceDialog" aria-label="Schließen">×</button>
+        </div>
+        <p class="workshop-intro">Nur dieses Fenster wird erfasst. Andere Fenster und dein kompletter Desktop bleiben außerhalb der Aufnahme.</p>
+        <div id="sourceGrid" class="source-grid"></div>
+        <p id="sourceError" class="form-error" role="alert"></p>
+      </div>
+    </dialog>
+
+    <dialog id="processingDialog" class="entry-dialog processing-dialog">
+      <div class="processing-content">
+        <div class="processing-symbol">✦</div>
+        <p class="eyebrow">Lokale Verarbeitung</p>
+        <h2 id="processingTitle">Workshop wird transkribiert</h2>
+        <p id="processingMessage">Audio wird vorbereitet …</p>
+        <div class="progress-track"><div id="processingProgress" class="progress-value"></div></div>
+        <span id="processingPercent">0 %</span>
+        <p class="processing-note">Du kannst die App im Vordergrund weiterlaufen lassen. Audio und Screenshots sind bereits sicher gespeichert.</p>
+      </div>
+    </dialog>
+
+    <dialog id="recoveryDialog" class="entry-dialog recovery-dialog">
+      <div class="processing-content">
+        <div class="processing-symbol">↺</div>
+        <p class="eyebrow">Wiederherstellung</p>
+        <h2>Unterbrochene Aufnahme gefunden</h2>
+        <p id="recoveryMessage"></p>
+        <div class="dialog-actions">
+          <button id="dismissRecoveryButton" class="button button-ghost" type="button">Später</button>
+          <button id="recoverWorkshopButton" class="button button-primary" type="button">Jetzt wiederherstellen</button>
+        </div>
+      </div>
+    </dialog>
+
+    <div id="recordingBar" class="recording-bar hidden" role="status">
+      <div class="recording-state">
+        <span class="record-pulse"></span>
+        <div><strong>Workshop-Aufnahme läuft</strong><small id="recordingWindowName"></small></div>
+      </div>
+      <span id="recordingTimer" class="recording-timer">00:00:00</span>
+      <span id="screenshotCount" class="screenshot-count">0 Screenshots</span>
+      <button id="takeScreenshotButton" class="button button-light" type="button">▣ Screenshot <kbd>⌘⇧S</kbd></button>
+      <button id="stopWorkshopButton" class="button button-stop" type="button">■ Beenden & transkribieren</button>
+    </div>
+    <video id="capturePreview" class="capture-preview" muted playsinline></video>
 
     <div id="toast" class="toast" role="status"></div>
     <script type="module" src="/app.js"></script>

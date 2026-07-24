@@ -21,6 +21,7 @@ import {
   testOpenAIConnection,
   updateOpenAISettings
 } from './lib/settings.js';
+import { deleteWorkshopSession, workshopAssetPath } from './lib/workshop-store.js';
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
 const PUBLIC_DIR = path.join(ROOT, 'public');
@@ -207,6 +208,23 @@ async function api(req, res, pathname) {
     return json(res, 200, { openai: publicOpenAISettings() });
   }
 
+  const workshopAssetMatch = pathname.match(/^\/api\/workshops\/([0-9a-f-]{36})\/assets\/(.+)$/i);
+  if (req.method === 'GET' && workshopAssetMatch) {
+    const filePath = await workshopAssetPath(workshopAssetMatch[1], decodeURIComponent(workshopAssetMatch[2]));
+    const extension = path.extname(filePath).toLowerCase();
+    const mime = extension === '.png' ? 'image/png'
+      : extension === '.jpg' || extension === '.jpeg' ? 'image/jpeg'
+        : 'application/octet-stream';
+    const content = await readFile(filePath);
+    res.writeHead(200, {
+      'Content-Type': mime,
+      'Content-Length': content.length,
+      'Cache-Control': 'private, max-age=31536000, immutable'
+    });
+    res.end(content);
+    return;
+  }
+
   if (req.method === 'POST' && pathname === '/api/settings/openai') {
     return json(res, 200, await updateOpenAISettings(await bodyJson(req)));
   }
@@ -265,11 +283,16 @@ async function api(req, res, pathname) {
   }
 
   if (req.method === 'DELETE' && entryMatch) {
+    let removed;
     await updateState((state) => {
       const before = state.entries.length;
+      removed = state.entries.find((item) => item.id === entryMatch[1]);
       state.entries = state.entries.filter((item) => item.id !== entryMatch[1]);
       if (state.entries.length === before) throw Object.assign(new Error('Eintrag nicht gefunden.'), { status: 404 });
       return state;
+    });
+    if (removed?.workshopId) await deleteWorkshopSession(removed.workshopId).catch((error) => {
+      console.warn(`Workshop-Dateien konnten nicht gelöscht werden: ${error.message}`);
     });
     return json(res, 200, { ok: true });
   }
@@ -333,24 +356,41 @@ async function api(req, res, pathname) {
   return json(res, 404, { error: 'API-Endpunkt nicht gefunden.' });
 }
 
-await loadEnv();
-await applyPersistedSettings();
-await ensureStore();
-await activateFolderWatcher();
+let initialized = false;
 
-const server = http.createServer(async (req, res) => {
-  try {
-    const { pathname } = new URL(req.url, 'http://localhost');
-    if (pathname.startsWith('/api/')) return await api(req, res, pathname);
-    if (!(await serveStatic(req, res, pathname))) json(res, 404, { error: 'Nicht gefunden.' });
-  } catch (error) {
-    console.error(error);
-    json(res, error.status || 500, { error: error.message || 'Interner Fehler.' });
+export async function startJournalServer({ port = Number(process.env.PORT || 4173), quiet = false } = {}) {
+  if (!initialized) {
+    await loadEnv();
+    await applyPersistedSettings();
+    await ensureStore();
+    await activateFolderWatcher();
+    initialized = true;
   }
-});
 
-const port = Number(process.env.PORT || 4173);
-server.listen(port, '127.0.0.1', () => {
-  console.log(`Meeting Journal läuft auf http://127.0.0.1:${port}`);
-  console.log('Teams-Sync: Anmeldung erfolgt in der App');
-});
+  const server = http.createServer(async (req, res) => {
+    try {
+      const { pathname } = new URL(req.url, 'http://localhost');
+      if (pathname.startsWith('/api/')) return await api(req, res, pathname);
+      if (!(await serveStatic(req, res, pathname))) json(res, 404, { error: 'Nicht gefunden.' });
+    } catch (error) {
+      console.error(error);
+      json(res, error.status || 500, { error: error.message || 'Interner Fehler.' });
+    }
+  });
+
+  await new Promise((resolve, reject) => {
+    server.once('error', reject);
+    server.listen(port, '127.0.0.1', resolve);
+  });
+  const address = server.address();
+  const actualPort = typeof address === 'object' && address ? address.port : port;
+  const url = `http://127.0.0.1:${actualPort}`;
+  if (!quiet) {
+    console.log(`Meeting Journal läuft auf ${url}`);
+    console.log('Teams-Sync: Anmeldung erfolgt in der App');
+  }
+  return { server, port: actualPort, url };
+}
+
+const isDirectRun = process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+if (isDirectRun) await startJournalServer();

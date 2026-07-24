@@ -1,28 +1,93 @@
-# Meeting Journal
+# Workshop Journal
 
-Eine lokal laufende Journal-Anwendung für Meeting-Transkripte. Sie speichert Transkripte, erzeugt Zusammenfassungen und sammelt Aufgaben an einem Ort.
+Eine lokale macOS-Desktop-Anwendung für Workshop-Aufnahmen, fensterbezogene Screenshots, Transkripte, Recaps, Entscheidungen und Aufgaben.
 
 Der bereinigte Entstehungsverlauf ist unter [docs/CONVERSATION_HISTORY.md](docs/CONVERSATION_HISTORY.md) dokumentiert. Zugangsdaten und API-Key-Werte sind darin nicht enthalten.
 
 ## Funktionen
 
+- Hostseitige Aufnahme von Mikrofon und Systemaudio als getrennte, fortlaufend gespeicherte Spuren
+- Auswahl eines einzelnen Workshop-Fensters statt des kompletten Bildschirms
+- Screenshot-Button und globaler Hotkey `⌘⇧S`
+- Vollständig lokale Transkription mit Whisper `large-v3-turbo-q5_0`
+- Zeitliche Zuordnung von Screenshots und Transkriptsegmenten
+- Automatische Wiederherstellung unterbrochener Aufnahmen
+- Markdown-, JSON- und Journal-Artefakte pro Workshop
 - Manuelles Einfügen von Transkripten
 - Datei-Import für TXT, VTT, SRT, Markdown und JSON
 - Automatischer Abruf von Teams-Transkripten über Microsoft Graph
 - Lokale Zusammenfassung und Aufgaben-Erkennung ohne Cloud-Zwang
 - Optionale, präzisere Zusammenfassungen über die OpenAI Responses API
 - Suche, Quellenfilter, Entscheidungen und abhakbare Aufgaben
-- Ausschließlich lokale Journal-Daten unter `data/journal.json`
+- Ausschließlich lokale Journal- und Workshop-Daten
 
-## Start
+## Voraussetzungen
 
-Voraussetzung: Node.js 20 oder neuer.
+- macOS 14.2 oder neuer für zuverlässige Systemaudioaufnahme
+- Apple Silicon oder Intel-Mac; Apple Silicon wird über Metal beschleunigt
+- Node.js 20 oder neuer für Entwicklung und lokalen Build
+- Einmalig etwa 574 MB freier Speicher für das Whisper-Modell
+
+## Desktop-App starten
 
 ```bash
-npm start
+npm install
+npm run desktop
 ```
 
-Danach `http://127.0.0.1:4173` öffnen. Integrationen werden zentral über **Einstellungen** in der Oberfläche konfiguriert. Eine `.env`-Datei ist nur noch für optionale technische Werte wie einen abweichenden Port nötig.
+Beim ersten Öffnen einer Workshop-Aufnahme führt die App einen Preflight für Mikrofon, Fensteraufnahme, FFmpeg und Whisper durch. Das Transkriptionsmodell wird über **Modell laden** einmalig heruntergeladen und per SHA-256 geprüft.
+
+macOS fragt beim ersten Einsatz nach:
+
+- Mikrofon
+- Bildschirm- und Systemaudioaufnahme
+
+Nach einer nachträglichen Änderung unter **Systemeinstellungen → Datenschutz & Sicherheit** muss die App neu gestartet werden.
+
+## Workshop aufnehmen
+
+1. **Workshop aufnehmen** öffnen.
+2. Titel, Sprache und optional Teilnehmende eintragen.
+3. Mikrofon, Systemaudio und Fensteraufnahme passend zum Workshop auswählen.
+4. Das konkrete PowerPoint-, Browser-, Whiteboard- oder Meeting-Fenster wählen.
+5. Bestätigen, dass die Teilnehmenden informiert wurden.
+6. Aufnahme starten.
+7. Screenshots über den Button oder `⌘⇧S` aufnehmen.
+8. **Beenden & transkribieren** wählen.
+
+Audio wird während der Aufnahme alle fünf Sekunden an den Desktop-Prozess übergeben und sofort auf die Platte geschrieben. Ein App-Absturz verliert daher nicht die komplette Aufnahme. Beim nächsten Start bietet die Anwendung eine Wiederherstellung an.
+
+## Lokale Daten
+
+Die installierte Desktop-App verwendet:
+
+```text
+~/Library/Application Support/Workshop Journal/data/
+├── journal.json
+├── settings.json
+├── models/
+└── workshops/
+    └── <session-id>/
+        ├── session.json
+        ├── audio/
+        ├── screenshots/
+        ├── transcript.json
+        ├── transcript.md
+        └── recap.md
+```
+
+Beim Löschen einer Workshop-Aufnahme im Journal werden auch deren Audio, Screenshots und abgeleitete Dateien entfernt.
+
+Die bisherige Browser-Version bleibt mit `npm start` unter `http://127.0.0.1:4173` verfügbar. Aufnahmefunktionen sind aus Sicherheits- und Betriebssystemgründen ausschließlich in der Desktop-App aktiv.
+
+## Desktop-App bauen
+
+```bash
+npm run pack   # ungepackte App zum lokalen Prüfen
+npm run dist   # DMG und ZIP
+```
+
+Für eine Weitergabe außerhalb des eigenen Macs sollte die App mit einem Apple Developer ID Application-Zertifikat signiert und notarisiert werden. Mikrofon- und Audiozweckbeschreibungen sind bereits in der Build-Konfiguration enthalten.
 
 ## Teams automatisch verbinden
 
@@ -59,7 +124,9 @@ Ohne API-Key arbeitet die App mit einer lokalen Heuristik. Unter **Einstellungen
 
 ## Datenschutz
 
-- Journal und Transkripte werden lokal in `data/journal.json` gespeichert.
+- Audio, Screenshots, Journal und Transkripte werden lokal im Application-Support-Ordner gespeichert.
+- Die Fensteraufnahme erfasst nur das explizit ausgewählte Fenster; sie wird nicht als Video gespeichert.
+- Die lokale Transkription verwendet Whisper über Metal/CPU und sendet kein Audio an einen Cloud-Dienst.
 - Microsoft-Tokens und Client-ID liegen nur im lokalen Browser-Speicher. Ein Client-Secret wird nicht verwendet.
 - Der optionale OpenAI-Key liegt ausschließlich in der lokalen, von Git ignorierten Datei `data/settings.json` und wird nie vollständig an den Browser zurückgegeben.
 - Bei aktivierter OpenAI-Zusammenfassung wird der Transkripttext zur Analyse an die OpenAI API übertragen.
@@ -70,4 +137,11 @@ Ohne API-Key arbeitet die App mit einer lokalen Heuristik. Unter **Einstellungen
 
 ```bash
 npm test
+npm run test:electron
+```
+
+Ein vollständiger, optionaler Integrationstest erzeugt per macOS-Sprachausgabe eine deutsche Testaufnahme, transkribiert sie lokal und prüft Zeitstempel, Screenshot-Zuordnung und Journal-Eintrag:
+
+```bash
+node scripts/transcription-integration.mjs
 ```
