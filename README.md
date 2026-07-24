@@ -118,6 +118,11 @@ Nach einem Browser-Download muss sie deshalb einmalig über macOS freigegeben we
 
 Eine Meldung, die behauptet, die App sei „beschädigt“, deutet dagegen auf einen fehlerhaft oder nur teilweise signierten Build hin. Der Release-Build wird deshalb zusätzlich mit `codesign --verify --deep --strict` geprüft.
 
+Auf verwalteten Firmen-Macs kann ein Konfigurationsprofil diese Benutzerfreigabe vollständig sperren. Steht unter **Apps erlauben von** der Hinweis **Diese Einstellung wurde von einem Profil konfiguriert** und zeigt der Folgedialog nur **In den Papierkorb legen** und **Fertig**, lässt die Unternehmensrichtlinie keine Ad-hoc-signierten Apps zu. In diesem Fall benötigt Workshop Journal entweder:
+
+- eine Apple Developer ID Application-Signatur mit Notarisierung oder
+- eine Freigabe/Allowlist durch die zuständige IT für die Bundle-ID `de.tobwil.workshopjournal`.
+
 Für eine warnungsfreie öffentliche Verteilung ist weiterhin ein Apple Developer ID Application-Zertifikat samt Notarisierung erforderlich. `npm run dist:signed` verwendet automatisch die von electron-builder unterstützten `CSC_*`- und `APPLE_*`-Umgebungsvariablen. Mikrofon- und Audiozweckbeschreibungen sind bereits in der Build-Konfiguration enthalten.
 
 ## Teams automatisch verbinden – Browser-Modus
