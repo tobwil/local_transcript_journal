@@ -54,6 +54,29 @@ macOS fragt beim ersten Einsatz nach:
 
 Nach einer nachträglichen Änderung unter **Systemeinstellungen → Datenschutz & Sicherheit** muss die App neu gestartet werden.
 
+## Lokales Transkriptionsmodell
+
+Für Speech-to-Text verwendet die Desktop-App **Whisper Large v3 Turbo Q5_0** im `whisper.cpp`-Format:
+
+| Eigenschaft | Wert |
+| --- | --- |
+| Modell-ID | `large-v3-turbo-q5_0` |
+| Datei | `ggml-large-v3-turbo-q5_0.bin` |
+| Quelle | [ggerganov/whisper.cpp auf Hugging Face](https://huggingface.co/ggerganov/whisper.cpp/blob/main/ggml-large-v3-turbo-q5_0.bin) |
+| Downloadgröße | 574.041.195 Bytes, etwa 574 MB |
+| SHA-256 | `394221709cd5ad1f40c46e6031ca61bce88931e6e088c188294c6d5a55ffa7e2` |
+| Laufzeit | `@fugood/whisper.node`, auf Apple Silicon mit Metal-Beschleunigung |
+
+Whisper ist hier ein spezialisiertes Sprach-zu-Text-Modell, kein allgemeines Chat-LLM. Es wird beim ersten Einrichten direkt von Hugging Face geladen, lokal gespeichert und anschließend vollständig offline ausgeführt. Der Download kann fortgesetzt werden und wird vor der Verwendung anhand von Dateigröße und SHA-256 geprüft.
+
+Die installierte Desktop-App speichert das Modell unter:
+
+```text
+~/Library/Application Support/Workshop Journal/data/models/ggml-large-v3-turbo-q5_0.bin
+```
+
+Audio wird für die Transkription nicht hochgeladen. Die anschließende Zusammenfassung ist davon getrennt: Ohne API-Key verwendet das Journal eine lokale Analyse; nur bei ausdrücklich aktivierter OpenAI-Integration wird der Transkripttext an die OpenAI API gesendet.
+
 ## Workshop aufnehmen
 
 1. **Workshop aufnehmen** öffnen.
