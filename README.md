@@ -101,11 +101,24 @@ Die Browser-Version speichert standardmäßig relativ zum Projekt:
 ## Desktop-App bauen
 
 ```bash
-npm run pack   # ungepackte App zum lokalen Prüfen
-npm run dist   # DMG und ZIP
+npm run pack          # vollständig ad-hoc-signierte App zum lokalen Prüfen
+npm run dist          # vollständig ad-hoc-signierte DMG und ZIP
+npm run dist:signed   # Developer-ID-Build, wenn Zertifikat und Notarisierungszugang vorhanden sind
 ```
 
-Für eine Weitergabe außerhalb des eigenen Macs sollte die App mit einem Apple Developer ID Application-Zertifikat signiert und notarisiert werden. Mikrofon- und Audiozweckbeschreibungen sind bereits in der Build-Konfiguration enthalten.
+Der Standard-Build signiert das gesamte App-Bundle einschließlich Electron-Helpern, Frameworks und nativen Whisper-Komponenten ad hoc. Dadurch bleibt die App kryptografisch konsistent, besitzt aber keine von Apple bestätigte Entwickleridentität.
+
+Nach einem Browser-Download muss sie deshalb einmalig über macOS freigegeben werden:
+
+1. DMG öffnen und **Workshop Journal** nach **Programme** ziehen.
+2. Die App einmal starten und den Gatekeeper-Hinweis schließen.
+3. **Systemeinstellungen → Datenschutz & Sicherheit** öffnen.
+4. Bei der Meldung zu **Workshop Journal** auf **Dennoch öffnen** klicken.
+5. Die Sicherheitsabfrage bestätigen und anschließend **Öffnen** wählen.
+
+Eine Meldung, die behauptet, die App sei „beschädigt“, deutet dagegen auf einen fehlerhaft oder nur teilweise signierten Build hin. Der Release-Build wird deshalb zusätzlich mit `codesign --verify --deep --strict` geprüft.
+
+Für eine warnungsfreie öffentliche Verteilung ist weiterhin ein Apple Developer ID Application-Zertifikat samt Notarisierung erforderlich. `npm run dist:signed` verwendet automatisch die von electron-builder unterstützten `CSC_*`- und `APPLE_*`-Umgebungsvariablen. Mikrofon- und Audiozweckbeschreibungen sind bereits in der Build-Konfiguration enthalten.
 
 ## Teams automatisch verbinden – Browser-Modus
 

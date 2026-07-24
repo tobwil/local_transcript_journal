@@ -1,6 +1,6 @@
 {
   "name": "meeting-journal",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "private": true,
   "type": "module",
   "description": "Lokale Browser- und macOS-Desktop-Anwendung für Transkripte, Workshop-Aufnahmen und Recaps",
@@ -14,8 +14,10 @@
     "test:all": "npm test && npm run test:electron",
     "test:electron": "node test/electron-smoke.mjs",
     "test:packaged": "TEST_PACKAGED=1 node test/electron-smoke.mjs",
-    "pack": "electron-builder --dir",
-    "dist": "electron-builder"
+    "pack": "electron-builder --dir --config.mac.identity=- --config.mac.hardenedRuntime=false",
+    "pack:signed": "electron-builder --dir",
+    "dist": "electron-builder --config.mac.identity=- --config.mac.hardenedRuntime=false",
+    "dist:signed": "electron-builder"
   },
   "engines": {
     "node": ">=20"

@@ -81,3 +81,11 @@ Ein vollständiger Integrationstest erzeugte eine deutsche Testaufnahme, transkr
 **Nutzer:** „Ist die Version für den Browser auch noch ganz normal startbar ohne macOS? Ich denke, die README passt nicht mehr ganz, oder? Und auch die Gesprächshistorie ist nicht vollständig.“
 
 **Ergebnis:** Die Browser-Version wurde erneut ohne Electron-Bridge unter `http://127.0.0.1:4173` geprüft. Journal, Suche, Filter, Einstellungen und Transkript-Dialog funktionieren plattformübergreifend. Aufnahme, Systemaudio, Fensterscreenshots, Whisper und Recovery bleiben bewusst Funktionen der macOS-Desktop-App. README, Oberfläche und dieser Gesprächsverlauf wurden entsprechend aktualisiert.
+
+## 13. Gatekeeper und vollständig ad-hoc-signierte DMG
+
+**Nutzer:** Die über GitHub heruntergeladene DMG wurde von macOS als „beschädigt“ abgelehnt. Der Nutzer stellte klar, dass auch Apps ohne Apple-Developer-Signatur über **Datenschutz & Sicherheit → Dennoch öffnen** freigegeben werden können.
+
+**Ergebnis:** Die DMG selbst war unverändert, aber das enthaltene App-Bundle trug nur die Linker-Signatur des inneren Electron-Executables. Ressourcen, Frameworks und Helper waren nicht als vollständiges Bundle versiegelt. Diese inkonsistente Signatur verursachte die irreführende Beschädigt-Meldung.
+
+Der Standard-Build wurde deshalb auf eine vollständige Ad-hoc-Signatur des gesamten Bundles umgestellt und Hardened Runtime für diesen Buildmodus deaktiviert. `codesign --verify --deep --strict` bestätigt nun App, Helper, Frameworks und native Komponenten. Ein separater `dist:signed`-Pfad bleibt für eine spätere Developer-ID-Signierung und Apple-Notarisierung erhalten.
