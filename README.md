@@ -72,7 +72,7 @@ Whisper ist hier ein spezialisiertes Sprach-zu-Text-Modell, kein allgemeines Cha
 Die installierte Desktop-App speichert das Modell unter:
 
 ```text
-~/Library/Application Support/Workshop Journal/data/models/ggml-large-v3-turbo-q5_0.bin
+~/Library/Application Support/meeting-journal/data/models/ggml-large-v3-turbo-q5_0.bin
 ```
 
 Audio wird für die Transkription nicht hochgeladen. Die anschließende Zusammenfassung ist davon getrennt: Ohne API-Key verwendet das Journal eine lokale Analyse; nur bei ausdrücklich aktivierter OpenAI-Integration wird der Transkripttext an die OpenAI API gesendet.
@@ -95,7 +95,7 @@ Audio wird während der Aufnahme alle fünf Sekunden an den Desktop-Prozess übe
 Die installierte Desktop-App verwendet:
 
 ```text
-~/Library/Application Support/Workshop Journal/data/
+~/Library/Application Support/meeting-journal/data/
 ├── journal.json
 ├── settings.json
 ├── models/
