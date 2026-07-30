@@ -9,6 +9,7 @@ Der bereinigte Entstehungsverlauf ist unter [docs/CONVERSATION_HISTORY.md](docs/
 | Funktion | Browser unter Windows, Linux und macOS | macOS-Desktop-App |
 | --- | --- | --- |
 | Journal, Suche, Entscheidungen und Todos | Ja | Ja |
+| Titel nachträglich bearbeiten und Inhalte kopieren | Ja | Ja |
 | Transkript einfügen oder Datei importieren | Ja | Ja |
 | OneDrive-Ordner überwachen | Ja | Ja |
 | Teams-Transkripte über Microsoft Graph importieren | Ja | Browser-Modus empfohlen |
@@ -54,6 +55,29 @@ macOS fragt beim ersten Einsatz nach:
 
 Nach einer nachträglichen Änderung unter **Systemeinstellungen → Datenschutz & Sicherheit** muss die App neu gestartet werden.
 
+## Lokales Transkriptionsmodell
+
+Für Speech-to-Text verwendet die Desktop-App **Whisper Large v3 Turbo Q5_0** im `whisper.cpp`-Format:
+
+| Eigenschaft | Wert |
+| --- | --- |
+| Modell-ID | `large-v3-turbo-q5_0` |
+| Datei | `ggml-large-v3-turbo-q5_0.bin` |
+| Quelle | [ggerganov/whisper.cpp auf Hugging Face](https://huggingface.co/ggerganov/whisper.cpp/blob/main/ggml-large-v3-turbo-q5_0.bin) |
+| Downloadgröße | 574.041.195 Bytes, etwa 574 MB |
+| SHA-256 | `394221709cd5ad1f40c46e6031ca61bce88931e6e088c188294c6d5a55ffa7e2` |
+| Laufzeit | `@fugood/whisper.node`, auf Apple Silicon mit Metal-Beschleunigung |
+
+Whisper ist hier ein spezialisiertes Sprach-zu-Text-Modell, kein allgemeines Chat-LLM. Es wird beim ersten Einrichten direkt von Hugging Face geladen, lokal gespeichert und anschließend vollständig offline ausgeführt. Der Download kann fortgesetzt werden und wird vor der Verwendung anhand von Dateigröße und SHA-256 geprüft.
+
+Die installierte Desktop-App speichert das Modell unter:
+
+```text
+~/Library/Application Support/meeting-journal/data/models/ggml-large-v3-turbo-q5_0.bin
+```
+
+Audio wird für die Transkription nicht hochgeladen. Die anschließende Zusammenfassung ist davon getrennt: Ohne API-Key verwendet das Journal eine lokale Analyse; nur bei ausdrücklich aktivierter OpenAI-Integration wird der Transkripttext an die OpenAI API gesendet.
+
 ## Workshop aufnehmen
 
 1. **Workshop aufnehmen** öffnen.
@@ -67,24 +91,29 @@ Nach einer nachträglichen Änderung unter **Systemeinstellungen → Datenschutz
 
 Audio wird während der Aufnahme alle fünf Sekunden an den Desktop-Prozess übergeben und sofort auf die Platte geschrieben. Ein App-Absturz verliert daher nicht die komplette Aufnahme. Beim nächsten Start bietet die Anwendung eine Wiederherstellung an.
 
+Sobald Transkript, Recap und Journal-Eintrag erfolgreich gespeichert wurden, löscht die App die temporären Audiodateien automatisch. Bei einer fehlgeschlagenen oder unterbrochenen Transkription bleiben sie für einen erneuten Recovery-Versuch erhalten.
+
+Im fertigen Eintrag lassen sich Titel nachträglich ändern sowie Zusammenfassung, Entscheidungen, Aufgaben, Notizen, Transkript oder der gesamte Eintrag kopieren. `recap.md` und `transcript.md` können einzeln heruntergeladen werden. In der Desktop-App öffnet **Ablageordner öffnen** direkt den Session-Ordner im Finder.
+
 ## Lokale Daten
 
 Die installierte Desktop-App verwendet:
 
 ```text
-~/Library/Application Support/Workshop Journal/data/
+~/Library/Application Support/meeting-journal/data/
 ├── journal.json
 ├── settings.json
 ├── models/
 └── workshops/
     └── <session-id>/
         ├── session.json
-        ├── audio/
         ├── screenshots/
         ├── transcript.json
         ├── transcript.md
         └── recap.md
 ```
+
+Der Ordner `audio/` existiert nur während Aufnahme, Recovery und Transkription. Nach erfolgreicher Fertigstellung wird er automatisch entfernt. Screenshots, Session-Metadaten, Transkript und Recap bleiben erhalten.
 
 Beim Löschen einer Workshop-Aufnahme im Journal werden auch deren Audio, Screenshots und abgeleitete Dateien entfernt.
 
@@ -101,11 +130,29 @@ Die Browser-Version speichert standardmäßig relativ zum Projekt:
 ## Desktop-App bauen
 
 ```bash
-npm run pack   # ungepackte App zum lokalen Prüfen
-npm run dist   # DMG und ZIP
+npm run pack          # vollständig ad-hoc-signierte App zum lokalen Prüfen
+npm run dist          # vollständig ad-hoc-signierte DMG und ZIP
+npm run dist:signed   # Developer-ID-Build, wenn Zertifikat und Notarisierungszugang vorhanden sind
 ```
 
-Für eine Weitergabe außerhalb des eigenen Macs sollte die App mit einem Apple Developer ID Application-Zertifikat signiert und notarisiert werden. Mikrofon- und Audiozweckbeschreibungen sind bereits in der Build-Konfiguration enthalten.
+Der Standard-Build signiert das gesamte App-Bundle einschließlich Electron-Helpern, Frameworks und nativen Whisper-Komponenten ad hoc. Dadurch bleibt die App kryptografisch konsistent, besitzt aber keine von Apple bestätigte Entwickleridentität.
+
+Nach einem Browser-Download muss sie deshalb einmalig über macOS freigegeben werden:
+
+1. DMG öffnen und **Workshop Journal** nach **Programme** ziehen.
+2. Die App einmal starten und den Gatekeeper-Hinweis schließen.
+3. **Systemeinstellungen → Datenschutz & Sicherheit** öffnen.
+4. Bei der Meldung zu **Workshop Journal** auf **Dennoch öffnen** klicken.
+5. Die Sicherheitsabfrage bestätigen und anschließend **Öffnen** wählen.
+
+Eine Meldung, die behauptet, die App sei „beschädigt“, deutet dagegen auf einen fehlerhaft oder nur teilweise signierten Build hin. Der Release-Build wird deshalb zusätzlich mit `codesign --verify --deep --strict` geprüft.
+
+Auf verwalteten Firmen-Macs kann ein Konfigurationsprofil diese Benutzerfreigabe vollständig sperren. Steht unter **Apps erlauben von** der Hinweis **Diese Einstellung wurde von einem Profil konfiguriert** und zeigt der Folgedialog nur **In den Papierkorb legen** und **Fertig**, lässt die Unternehmensrichtlinie keine Ad-hoc-signierten Apps zu. In diesem Fall benötigt Workshop Journal entweder:
+
+- eine Apple Developer ID Application-Signatur mit Notarisierung oder
+- eine Freigabe/Allowlist durch die zuständige IT für die Bundle-ID `de.tobwil.workshopjournal`.
+
+Für eine warnungsfreie öffentliche Verteilung ist weiterhin ein Apple Developer ID Application-Zertifikat samt Notarisierung erforderlich. `npm run dist:signed` verwendet automatisch die von electron-builder unterstützten `CSC_*`- und `APPLE_*`-Umgebungsvariablen. Mikrofon- und Audiozweckbeschreibungen sind bereits in der Build-Konfiguration enthalten.
 
 ## Teams automatisch verbinden – Browser-Modus
 
@@ -142,7 +189,8 @@ Ohne API-Key arbeitet die App mit einer lokalen Heuristik. Unter **Einstellungen
 
 ## Datenschutz
 
-- Audio, Screenshots, Journal und Transkripte werden lokal im Application-Support-Ordner gespeichert.
+- Temporäre Audiodateien, Screenshots, Journal und Transkripte werden lokal im Application-Support-Ordner gespeichert.
+- Nach erfolgreicher Transkription werden die Audiodateien automatisch gelöscht; bei Fehlern bleiben sie zur Wiederherstellung erhalten.
 - Die Fensteraufnahme erfasst nur das explizit ausgewählte Fenster; sie wird nicht als Video gespeichert.
 - Die lokale Transkription verwendet Whisper über Metal/CPU und sendet kein Audio an einen Cloud-Dienst.
 - Microsoft-Tokens und Client-ID liegen nur im lokalen Browser-Speicher. Ein Client-Secret wird nicht verwendet.

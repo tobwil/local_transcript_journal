@@ -194,6 +194,55 @@ function toast(message, error = false) {
   toast.timer = setTimeout(() => { element.className = 'toast'; }, 3400);
 }
 
+function todoMarkdown(entry) {
+  return (entry.todos || []).map((todo) => {
+    const meta = [todo.owner, todo.due].filter(Boolean).join(' · ');
+    return `- [${todo.done ? 'x' : ' '}] ${todo.text}${meta ? ` — ${meta}` : ''}`;
+  }).join('\n');
+}
+
+function entryMarkdown(entry) {
+  const decisions = (entry.decisions || []).map((item) => `- ${item}`).join('\n');
+  const screenshots = (entry.screenshots || []).map((item) => {
+    const stamp = new Date(item.offsetMs || 0).toISOString().slice(11, 19);
+    return `- ${stamp} — ${item.windowName}${item.url ? ` (${location.origin}${item.url})` : ''}`;
+  }).join('\n');
+  return [
+    `# ${entry.title}`,
+    entry.summary || '',
+    '## Entscheidungen',
+    decisions || '- Keine expliziten Entscheidungen erkannt.',
+    '## Aufgaben',
+    todoMarkdown(entry) || '- Keine konkreten Aufgaben erkannt.',
+    entry.notes ? `## Eigene Notiz\n${entry.notes}` : '',
+    screenshots ? `## Screenshots\n${screenshots}` : '',
+    `## Transkript\n${entry.transcript || ''}`
+  ].filter(Boolean).join('\n\n');
+}
+
+async function copyText(text, label) {
+  const value = String(text || '').trim();
+  if (!value) {
+    toast(`${label} ist leer.`, true);
+    return;
+  }
+  try {
+    await navigator.clipboard.writeText(value);
+  } catch {
+    const fallback = document.createElement('textarea');
+    fallback.value = value;
+    fallback.setAttribute('readonly', '');
+    fallback.style.position = 'fixed';
+    fallback.style.opacity = '0';
+    document.body.appendChild(fallback);
+    fallback.select();
+    const copied = document.execCommand('copy');
+    fallback.remove();
+    if (!copied) throw new Error('Kopieren wurde vom System blockiert.');
+  }
+  toast(`${label} kopiert.`);
+}
+
 function sourceLabel(source) {
   return source === 'teams' ? 'Microsoft Teams'
     : source === 'onedrive' ? 'OneDrive-Ordner'
@@ -294,6 +343,7 @@ function renderDetail(entry) {
     ${entry.recording?.captureMode?.microphone ? '<span>⌁ Mikrofon</span>' : ''}
     ${entry.recording?.captureMode?.system ? '<span>◉ Systemaudio</span>' : ''}
     ${entry.recording?.sourceName ? `<span>▣ ${escapeHtml(entry.recording.sourceName)}</span>` : ''}
+    ${entry.recording?.audioRetention === 'deleted-after-transcription' ? '<span>✓ Audio nach Transkription gelöscht</span>' : ''}
   </div>` : '';
   const screenshots = (entry.screenshots || []).map((item) => {
     const stamp = new Date(item.offsetMs || 0).toISOString().slice(11, 19);
@@ -302,24 +352,43 @@ function renderDetail(entry) {
       <span><b>${escapeHtml(item.windowName)}</b><time>${stamp}</time></span>
     </a>`;
   }).join('');
+  const workshopDownloads = entry.workshopId ? `
+    <a class="button button-ghost button-link" href="/api/workshops/${entry.workshopId}/download/recap.md" download>Recap.md laden</a>
+    <a class="button button-ghost button-link" href="/api/workshops/${entry.workshopId}/download/transcript.md" download>Transkript.md laden</a>
+  ` : '';
+  const folderButton = entry.workshopId && window.workshopDesktop?.openWorkshopFolder
+    ? '<button class="button button-ghost" data-open-workshop-folder>Ablageordner öffnen</button>'
+    : '';
   $('#entryDetail').innerHTML = `
     <div class="detail-top">
-      <div><div class="detail-date">${formatDate(entry.occurredAt, 'full')} · ${sourceLabel(entry.source)}</div><h2>${escapeHtml(entry.title)}</h2><div class="participants">${participants || '<span>Keine Teilnehmenden erkannt</span>'}</div>${workshopMeta}</div>
+      <div class="detail-heading">
+        <div class="detail-date">${formatDate(entry.occurredAt, 'full')} · ${sourceLabel(entry.source)}</div>
+        <div class="title-row"><h2>${escapeHtml(entry.title)}</h2><button class="copy-link" type="button" data-edit-title>Titel bearbeiten</button></div>
+        <form class="title-edit-form hidden" data-title-form>
+          <input name="title" maxlength="200" required value="${escapeHtml(entry.title)}" aria-label="Titel bearbeiten" />
+          <button class="button button-primary" type="submit">Speichern</button>
+          <button class="button button-ghost" type="button" data-cancel-title>Abbrechen</button>
+        </form>
+        <div class="participants">${participants || '<span>Keine Teilnehmenden erkannt</span>'}</div>${workshopMeta}
+      </div>
+      <button class="button button-ghost" type="button" data-copy-all>Alles kopieren</button>
     </div>
     <div class="detail-grid">
       <div>
-        <div class="section-label">Kurzfassung</div>
+        <div class="section-heading"><div class="section-label">Kurzfassung</div><button class="copy-link" type="button" data-copy-summary>Kopieren</button></div>
         <p class="summary-text">${escapeHtml(entry.summary)}</p>
         ${topics ? `<div class="topics">${topics}</div>` : ''}
         <p class="provider-note">Zusammengefasst mit ${entry.summaryProvider === 'openai' ? 'OpenAI' : 'lokaler Analyse'}${entry.summaryError ? ' · KI nicht erreichbar, lokaler Ersatz verwendet' : ''}</p>
-        ${decisions ? `<div class="decisions-card"><div class="section-label">Entscheidungen</div><ul class="decision-list">${decisions}</ul></div>` : ''}
-        ${entry.notes ? `<div class="notes-card"><div class="section-label">Eigene Notiz</div><p>${escapeHtml(entry.notes)}</p></div>` : ''}
+        ${decisions ? `<div class="decisions-card"><div class="section-heading"><div class="section-label">Entscheidungen</div><button class="copy-link" type="button" data-copy-decisions>Kopieren</button></div><ul class="decision-list">${decisions}</ul></div>` : ''}
+        ${entry.notes ? `<div class="notes-card"><div class="section-heading"><div class="section-label">Eigene Notiz</div><button class="copy-link" type="button" data-copy-notes>Kopieren</button></div><p>${escapeHtml(entry.notes)}</p></div>` : ''}
       </div>
-      <aside class="todo-box"><div class="section-label">Nächste Schritte</div>${todos || '<p class="none-note">Keine konkreten Aufgaben erkannt.</p>'}</aside>
+      <aside class="todo-box"><div class="section-heading"><div class="section-label">Nächste Schritte</div>${todos ? '<button class="copy-link" type="button" data-copy-todos>Kopieren</button>' : ''}</div>${todos || '<p class="none-note">Keine konkreten Aufgaben erkannt.</p>'}</aside>
     </div>
     ${screenshots ? `<section class="screenshot-section"><div class="section-label">Workshop-Screenshots · ${entry.screenshots.length}</div><div class="screenshot-gallery">${screenshots}</div></section>` : ''}
-    <details class="transcript-block"><summary>Original-Transkript anzeigen</summary><div class="transcript-content">${escapeHtml(entry.transcript)}</div></details>
+    <details class="transcript-block"><summary>Original-Transkript anzeigen</summary><div class="transcript-toolbar"><button class="copy-link" type="button" data-copy-transcript>Kopieren</button></div><div class="transcript-content">${escapeHtml(entry.transcript)}</div></details>
     <div class="detail-actions">
+      ${workshopDownloads}
+      ${folderButton}
       <button class="button button-ghost" data-resummarize>Neu zusammenfassen</button>
       <button class="button button-ghost danger" data-delete>Löschen</button>
     </div>`;
@@ -333,6 +402,53 @@ function renderDetail(entry) {
       renderList();
     } catch (error) { input.checked = !input.checked; toast(error.message, true); }
   }));
+  $('[data-edit-title]').addEventListener('click', () => {
+    $('.title-row').classList.add('hidden');
+    const form = $('[data-title-form]');
+    form.classList.remove('hidden');
+    form.elements.title.focus();
+    form.elements.title.select();
+  });
+  $('[data-cancel-title]').addEventListener('click', () => {
+    $('[data-title-form]').classList.add('hidden');
+    $('.title-row').classList.remove('hidden');
+  });
+  $('[data-title-form]').addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const title = form.elements.title.value.trim();
+    if (!title) return;
+    const button = form.querySelector('[type="submit"]');
+    button.disabled = true;
+    try {
+      const updated = await api(`/api/entries/${entry.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ title })
+      });
+      entry.title = updated.title;
+      const summaryEntry = state.entries.find((item) => item.id === entry.id);
+      if (summaryEntry) summaryEntry.title = updated.title;
+      renderList();
+      renderDetail(entry);
+      toast('Titel aktualisiert.');
+    } catch (error) {
+      toast(error.message, true);
+      button.disabled = false;
+    }
+  });
+  $('[data-copy-all]').addEventListener('click', () => copyText(entryMarkdown(entry), 'Gesamter Eintrag'));
+  $('[data-copy-summary]').addEventListener('click', () => copyText(entry.summary, 'Kurzfassung'));
+  $('[data-copy-decisions]')?.addEventListener('click', () => copyText((entry.decisions || []).map((item) => `- ${item}`).join('\n'), 'Entscheidungen'));
+  $('[data-copy-notes]')?.addEventListener('click', () => copyText(entry.notes, 'Notiz'));
+  $('[data-copy-todos]')?.addEventListener('click', () => copyText(todoMarkdown(entry), 'Aufgaben'));
+  $('[data-copy-transcript]').addEventListener('click', () => copyText(entry.transcript, 'Transkript'));
+  $('[data-open-workshop-folder]')?.addEventListener('click', async () => {
+    try {
+      await window.workshopDesktop.openWorkshopFolder(entry.workshopId);
+    } catch (error) {
+      toast(error.message, true);
+    }
+  });
   $('[data-resummarize]').addEventListener('click', () => resummarize(entry.id));
   $('[data-delete]').addEventListener('click', () => deleteEntry(entry));
 }

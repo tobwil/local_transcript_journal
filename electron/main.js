@@ -226,6 +226,13 @@ function registerIpc() {
     }
     return transcribe(sessionId);
   });
+  ipcMain.handle('workshop:open-folder', async (_event, sessionId) => {
+    const { readWorkshopSession, sessionDirectory } = await import('../lib/workshop-store.js');
+    await readWorkshopSession(sessionId);
+    const error = await shell.openPath(sessionDirectory(sessionId));
+    if (error) throw new Error(`Der Ablageordner konnte nicht geöffnet werden: ${error}`);
+    return { ok: true };
+  });
 }
 
 app.whenReady().then(async () => {

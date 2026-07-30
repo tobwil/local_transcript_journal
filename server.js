@@ -21,7 +21,11 @@ import {
   testOpenAIConnection,
   updateOpenAISettings
 } from './lib/settings.js';
-import { deleteWorkshopSession, workshopAssetPath } from './lib/workshop-store.js';
+import {
+  deleteWorkshopSession,
+  updateWorkshopTitle,
+  workshopAssetPath
+} from './lib/workshop-store.js';
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
 const PUBLIC_DIR = path.join(ROOT, 'public');
@@ -208,6 +212,21 @@ async function api(req, res, pathname) {
     return json(res, 200, { openai: publicOpenAISettings() });
   }
 
+  const workshopDownloadMatch = pathname.match(/^\/api\/workshops\/([0-9a-f-]{36})\/download\/(recap|transcript)\.md$/i);
+  if (req.method === 'GET' && workshopDownloadMatch) {
+    const fileName = `${workshopDownloadMatch[2].toLowerCase()}.md`;
+    const filePath = await workshopAssetPath(workshopDownloadMatch[1], fileName);
+    const content = await readFile(filePath);
+    res.writeHead(200, {
+      'Content-Type': 'text/markdown; charset=utf-8',
+      'Content-Length': content.length,
+      'Content-Disposition': `attachment; filename="${fileName}"`,
+      'Cache-Control': 'no-store'
+    });
+    res.end(content);
+    return;
+  }
+
   const workshopAssetMatch = pathname.match(/^\/api\/workshops\/([0-9a-f-]{36})\/assets\/(.+)$/i);
   if (req.method === 'GET' && workshopAssetMatch) {
     const filePath = await workshopAssetPath(workshopAssetMatch[1], decodeURIComponent(workshopAssetMatch[2]));
@@ -268,6 +287,14 @@ async function api(req, res, pathname) {
   const entryMatch = pathname.match(/^\/api\/entries\/([^/]+)$/);
   if (req.method === 'PATCH' && entryMatch) {
     const payload = await bodyJson(req);
+    const currentState = await readState();
+    const currentEntry = currentState.entries.find((item) => item.id === entryMatch[1]);
+    if (!currentEntry) return json(res, 404, { error: 'Eintrag nicht gefunden.' });
+    if (typeof payload.title === 'string') {
+      payload.title = payload.title.trim().slice(0, 200);
+      if (!payload.title) throw Object.assign(new Error('Der Titel darf nicht leer sein.'), { status: 400 });
+      if (currentEntry.workshopId) await updateWorkshopTitle(currentEntry.workshopId, payload.title);
+    }
     let changed;
     await updateState((state) => {
       const entry = state.entries.find((item) => item.id === entryMatch[1]);

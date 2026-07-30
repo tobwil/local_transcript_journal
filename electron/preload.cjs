@@ -28,6 +28,7 @@ contextBridge.exposeInMainWorld('workshopDesktop', {
   stopSession: (sessionId, input) => ipcRenderer.invoke('workshop:stop', { sessionId, input }),
   transcribeSession: (sessionId) => ipcRenderer.invoke('workshop:transcribe', sessionId),
   recoverSession: (sessionId) => ipcRenderer.invoke('workshop:recover', sessionId),
+  openWorkshopFolder: (sessionId) => ipcRenderer.invoke('workshop:open-folder', sessionId),
   downloadModel: () => ipcRenderer.invoke('transcription:download-model'),
   setRecordingActive: (sessionId, active) => ipcRenderer.invoke('workshop:set-active', { sessionId, active }),
   onProgress: (callback) => on('workshop:progress', callback),
