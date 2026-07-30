@@ -1,6 +1,6 @@
 {
   "name": "meeting-journal",
-  "version": "2.0.1",
+  "version": "2.1.0",
   "private": true,
   "type": "module",
   "description": "Lokale Browser- und macOS-Desktop-Anwendung für Transkripte, Workshop-Aufnahmen und Recaps",

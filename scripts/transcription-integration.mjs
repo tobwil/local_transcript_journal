@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, stat, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import ffmpegStatic from 'ffmpeg-static';
@@ -85,5 +85,11 @@ assert.match(result.entry.transcript.toLowerCase(), /(strategie|workshop)/);
 assert.match(result.entry.transcript.toLowerCase(), /(kundenportal|portal)/);
 assert.ok(result.entry.transcriptSegments.length > 0);
 assert.ok(result.entry.transcriptSegments.at(-1).end <= 14, 'Zeitstempel müssen in Sekunden zur Audiodauer passen');
+assert.equal(result.session.audioRetention, 'deleted-after-transcription');
+await assert.rejects(
+  stat(path.join(process.env.MEETING_JOURNAL_DATA_DIR, 'workshops', session.id, 'audio')),
+  { code: 'ENOENT' },
+  'Audio muss nach erfolgreicher Transkription gelöscht sein'
+);
 await writeFile(path.join(work, 'result.json'), JSON.stringify(result, null, 2));
 console.log(result.entry.transcript);

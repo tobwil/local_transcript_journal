@@ -55,6 +55,7 @@ try {
   await page.locator('#recordWorkshopButton').waitFor({ state: 'visible' });
   assert.equal(await page.title(), 'Workshop Journal');
   assert.equal(await page.evaluate(() => Boolean(window.workshopDesktop?.isDesktop)), true);
+  assert.equal(await page.evaluate(() => typeof window.workshopDesktop?.openWorkshopFolder), 'function');
 
   const status = await page.evaluate(() => window.workshopDesktop.getStatus());
   assert.equal(status.transcription.ffmpeg.available, true);

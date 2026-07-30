@@ -9,6 +9,7 @@ Der bereinigte Entstehungsverlauf ist unter [docs/CONVERSATION_HISTORY.md](docs/
 | Funktion | Browser unter Windows, Linux und macOS | macOS-Desktop-App |
 | --- | --- | --- |
 | Journal, Suche, Entscheidungen und Todos | Ja | Ja |
+| Titel nachträglich bearbeiten und Inhalte kopieren | Ja | Ja |
 | Transkript einfügen oder Datei importieren | Ja | Ja |
 | OneDrive-Ordner überwachen | Ja | Ja |
 | Teams-Transkripte über Microsoft Graph importieren | Ja | Browser-Modus empfohlen |
@@ -90,6 +91,10 @@ Audio wird für die Transkription nicht hochgeladen. Die anschließende Zusammen
 
 Audio wird während der Aufnahme alle fünf Sekunden an den Desktop-Prozess übergeben und sofort auf die Platte geschrieben. Ein App-Absturz verliert daher nicht die komplette Aufnahme. Beim nächsten Start bietet die Anwendung eine Wiederherstellung an.
 
+Sobald Transkript, Recap und Journal-Eintrag erfolgreich gespeichert wurden, löscht die App die temporären Audiodateien automatisch. Bei einer fehlgeschlagenen oder unterbrochenen Transkription bleiben sie für einen erneuten Recovery-Versuch erhalten.
+
+Im fertigen Eintrag lassen sich Titel nachträglich ändern sowie Zusammenfassung, Entscheidungen, Aufgaben, Notizen, Transkript oder der gesamte Eintrag kopieren. `recap.md` und `transcript.md` können einzeln heruntergeladen werden. In der Desktop-App öffnet **Ablageordner öffnen** direkt den Session-Ordner im Finder.
+
 ## Lokale Daten
 
 Die installierte Desktop-App verwendet:
@@ -102,12 +107,13 @@ Die installierte Desktop-App verwendet:
 └── workshops/
     └── <session-id>/
         ├── session.json
-        ├── audio/
         ├── screenshots/
         ├── transcript.json
         ├── transcript.md
         └── recap.md
 ```
+
+Der Ordner `audio/` existiert nur während Aufnahme, Recovery und Transkription. Nach erfolgreicher Fertigstellung wird er automatisch entfernt. Screenshots, Session-Metadaten, Transkript und Recap bleiben erhalten.
 
 Beim Löschen einer Workshop-Aufnahme im Journal werden auch deren Audio, Screenshots und abgeleitete Dateien entfernt.
 
@@ -183,7 +189,8 @@ Ohne API-Key arbeitet die App mit einer lokalen Heuristik. Unter **Einstellungen
 
 ## Datenschutz
 
-- Audio, Screenshots, Journal und Transkripte werden lokal im Application-Support-Ordner gespeichert.
+- Temporäre Audiodateien, Screenshots, Journal und Transkripte werden lokal im Application-Support-Ordner gespeichert.
+- Nach erfolgreicher Transkription werden die Audiodateien automatisch gelöscht; bei Fehlern bleiben sie zur Wiederherstellung erhalten.
 - Die Fensteraufnahme erfasst nur das explizit ausgewählte Fenster; sie wird nicht als Video gespeichert.
 - Die lokale Transkription verwendet Whisper über Metal/CPU und sendet kein Audio an einen Cloud-Dienst.
 - Microsoft-Tokens und Client-ID liegen nur im lokalen Browser-Speicher. Ein Client-Secret wird nicht verwendet.

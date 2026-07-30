@@ -1,6 +1,6 @@
 # Bereinigter Gesprächsverlauf
 
-Stand: 24. Juli 2026
+Stand: 30. Juli 2026
 
 Dieses Dokument hält die Produktentscheidungen und Arbeitsaufträge aus der Entstehung des Workshop Journals fest. Automatisch gelieferte Browser- und Systeminformationen wurden weggelassen. API-Key-Werte, Zugangsdaten, Tokens und andere Geheimnisse sind ausdrücklich nicht enthalten.
 
@@ -91,3 +91,17 @@ Ein vollständiger Integrationstest erzeugte eine deutsche Testaufnahme, transkr
 Der Standard-Build wurde deshalb auf eine vollständige Ad-hoc-Signatur des gesamten Bundles umgestellt und Hardened Runtime für diesen Buildmodus deaktiviert. `codesign --verify --deep --strict` bestätigt nun App, Helper, Frameworks und native Komponenten. Ein separater `dist:signed`-Pfad bleibt für eine spätere Developer-ID-Signierung und Apple-Notarisierung erhalten.
 
 Beim Test auf dem vorgesehenen Firmen-Mac zeigte sich anschließend, dass dessen Sicherheitsrichtlinie über ein Konfigurationsprofil verwaltet wird. Obwohl **Dennoch öffnen** sichtbar ist, bietet der Folgedialog nur **In den Papierkorb legen** und **Fertig** an. Damit blockiert die Unternehmensrichtlinie Ad-hoc-signierte Apps unabhängig von der technisch gültigen Bundle-Signatur. Für dieses Zielgerät sind deshalb eine Developer-ID-Signierung mit Notarisierung oder eine IT-seitige Allowlist erforderlich.
+
+## 14. Lokale Installation, Modell und Datenpfad
+
+**Nutzer:** „Okay, da geht’s! Sollten wir in der README noch das verwendete beziehungsweise herunterzuladende LLM nennen?“
+
+**Nutzer:** „Frage, es funktioniert super, aber wo werden denn die Einträge gespeichert? Also in welchem Ordner auf dem Mac?“
+
+**Ergebnis:** Die App wurde lokal als vollständig ad-hoc-signiertes Bundle installiert. Die README dokumentiert Whisper Large v3 Turbo Q5_0, Downloadquelle, Größe, Prüfsumme und lokalen Modellpfad. Der tatsächliche macOS-Datenpfad richtet sich nach dem technischen App-Namen und lautet `~/Library/Application Support/meeting-journal/data/`.
+
+## 15. Bearbeitung, Export und Speicherbereinigung
+
+**Nutzer:** Gewünscht wurden nachträgliche Titelbearbeitung, das Kopieren einzelner Inhalte oder des kompletten Eintrags, der Download erzeugter Markdown-Dateien, ein direkter Link zum Ablageordner sowie das automatische Löschen der Audiodateien nach der Transkription. Vorhandene Inhalte sollten beim Update erhalten bleiben.
+
+**Ergebnis:** Fertige Einträge bieten diese Bearbeitungs-, Kopier- und Exportaktionen direkt in der Detailansicht. Die Desktop-App kann den zugehörigen Workshop-Ordner im Finder öffnen. Temporäre Audiodateien werden erst gelöscht, nachdem Transkript, Recap und Journal-Eintrag erfolgreich gespeichert sind; bei Fehlern bleiben sie für Recovery erhalten. Die Installation ersetzt nur das App-Bundle und verändert den bestehenden Application-Support-Datenordner nicht.
